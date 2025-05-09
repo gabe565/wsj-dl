@@ -61,6 +61,17 @@ func run() error {
 
 	group, ctx := errgroup.WithContext(ctx)
 
+	go func() {
+		v, err := findLatest(ctx, conf, s3)
+		if err != nil {
+			slog.Error("Failed to find latest file", "error", err)
+			return
+		}
+
+		slog.Info("Found latest file", "path", v)
+		latest.Store(&v)
+	}()
+
 	group.Go(func() error {
 		slog.Info("Starting server", "addr", server.Addr)
 		return server.ListenAndServe()

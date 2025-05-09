@@ -8,9 +8,10 @@ import (
 )
 
 type Config struct {
-	ListenAddress   string `env:"LISTEN_ADDRESS,notEmpty"  envDefault:":8080"`
-	UploadAuthKey   string `env:"UPLOAD_AUTH_KEY,notEmpty"`
-	UploadUserAgent string `env:"UPLOAD_USER_AGENT"`
+	ListenAddress    string `env:"LISTEN_ADDRESS,notEmpty"  envDefault:":8080"`
+	UploadAuthKey    string `env:"UPLOAD_AUTH_KEY,notEmpty"`
+	UploadUserAgent  string `env:"UPLOAD_USER_AGENT"`
+	RedirectToLatest bool   `env:"REDIRECT_TO_LATEST"       envDefault:"true"`
 
 	S3Endpoint string `env:"S3_ENDPOINT,notEmpty"`
 	S3Region   string `env:"S3_REGION"`

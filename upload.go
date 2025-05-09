@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"io"
@@ -8,10 +9,14 @@ import (
 	"net/http"
 	"path/filepath"
 	"strings"
+	"sync/atomic"
 	"time"
 
 	"github.com/minio/minio-go/v7"
 )
+
+//nolint:gochecknoglobals
+var latest atomic.Pointer[string]
 
 func upload(conf *Config, s3 *minio.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -74,6 +79,7 @@ func upload(conf *Config, s3 *minio.Client) http.HandlerFunc {
 		}
 
 		slog.Info("Loaded file", "filename", filename, "url", url)
+		latest.Store(&flatFilename)
 
 		fileURL := *r.URL
 		fileURL.Path = flatFilename
@@ -109,4 +115,50 @@ func getDate(filename string) (time.Time, error) {
 	}
 
 	return d, nil
+}
+
+func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (string, error) {
+	// Fast path for today
+	now := time.Now().AddDate(0, 0, 1)
+	if _, err := s3.StatObject(ctx, conf.S3Bucket, now.Format("2006/01/02.pdf"),
+		minio.StatObjectOptions{},
+	); err == nil {
+		return now.Format("2006-01-02.pdf"), nil
+	}
+
+	// Fast path for yesterday
+	now = now.AddDate(0, 0, -1)
+	if _, err := s3.StatObject(ctx, conf.S3Bucket, now.Format("2006/01/02.pdf"),
+		minio.StatObjectOptions{},
+	); err == nil {
+		return now.Format("2006-01-02.pdf"), nil
+	}
+
+	// Slow path
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	var latestName string
+	var latest time.Time
+	for item := range s3.ListObjectsIter(ctx, conf.S3Bucket, minio.ListObjectsOptions{
+		Prefix:    "20",
+		Recursive: true,
+	}) {
+		if item.Err != nil {
+			return "", item.Err
+		}
+
+		d, err := time.Parse("2006/01/02.pdf", item.Key)
+		if err != nil {
+			continue
+		}
+
+		if d.After(latest) {
+			latestName = item.Key
+			latest = d
+		}
+	}
+
+	latestName = strings.ReplaceAll(latestName, "/", "-")
+	return latestName, nil
 }

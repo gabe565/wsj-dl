@@ -12,6 +12,12 @@ import (
 func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filename := chi.URLParam(r, "*")
+		if conf.RedirectToLatest && filename == "" {
+			if v := latest.Load(); v != nil {
+				http.Redirect(w, r, "/"+(*v), http.StatusTemporaryRedirect)
+				return
+			}
+		}
 		filename = strings.ReplaceAll(filename, "-", "/")
 
 		obj, err := s3.GetObject(r.Context(), conf.S3Bucket, filename, minio.GetObjectOptions{})
