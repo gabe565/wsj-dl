@@ -7,7 +7,7 @@ require (
 	github.com/go-chi/chi/v5 v5.2.1
 	github.com/go-chi/httprate v0.15.0
 	github.com/minio/minio-go/v7 v7.0.91
-	golang.org/x/sync v0.12.0
+	golang.org/x/sync v0.14.0
 )
 
 require (
