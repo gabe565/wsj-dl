@@ -85,7 +85,11 @@ func run() error {
 		return server.Shutdown(ctx)
 	})
 
-	return group.Wait()
+	err = group.Wait()
+	if errors.Is(err, http.ErrServerClosed) {
+		return nil
+	}
+	return err
 }
 
 func handleHTTPError(w http.ResponseWriter, msg string, status int) {
