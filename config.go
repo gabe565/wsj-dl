@@ -25,8 +25,8 @@ type Config struct {
 }
 
 func Load() (*Config, error) {
-	var c Config
-	if err := env.Parse(&c); err != nil {
+	c, err := env.ParseAs[Config]()
+	if err != nil {
 		return nil, err
 	}
 
