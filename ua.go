@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-const UserAgentURL = "https://raw.githubusercontent.com/jnrbsn/user-agents/refs/heads/main/user-agents.json"
+const UserAgentURL = "https://jnrbsn.github.io/user-agents/user-agents.json"
 
 func LoadUserAgent(ctx context.Context) (string, error) {
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, UserAgentURL, nil)
