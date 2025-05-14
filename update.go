@@ -135,7 +135,7 @@ func getDate(filename string) (time.Time, error) {
 
 func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (string, error) {
 	// Fast path for today
-	now := time.Now().AddDate(0, 0, 1)
+	now := time.Now()
 	if _, err := s3.StatObject(ctx, conf.S3Bucket, now.Format("2006/01/02.pdf"),
 		minio.StatObjectOptions{},
 	); err == nil {
