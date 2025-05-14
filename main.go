@@ -116,7 +116,7 @@ func run() error {
 	}
 
 	err = group.Wait()
-	if errors.Is(err, http.ErrServerClosed) {
+	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) {
 		return nil
 	}
 	return err
