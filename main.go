@@ -43,15 +43,14 @@ func run() error {
 		middleware.RealIP,
 		middleware.Logger,
 		middleware.Recoverer,
+		httprate.Limit(conf.LimitRequests, conf.LimitWindow, httprate.WithKeyByIP()),
 	)
 
 	if conf.UpdateAuthKey != "" {
-		r.With(httprate.Limit(conf.UpdateLimitRequests, conf.UpdateLimitWindow, httprate.WithKeyByIP())).
-			Get("/api/update", updateHandler(conf, s3))
+		r.Get("/api/update", updateHandler(conf, s3))
 	}
 
-	r.With(httprate.Limit(conf.GetLimitRequests, conf.GetLimitWindow, httprate.WithKeyByIP())).
-		Get("/*", get(conf, s3))
+	r.Get("/*", get(conf, s3))
 
 	server := &http.Server{
 		Addr:        conf.ListenAddress,

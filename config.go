@@ -30,15 +30,10 @@ type Config struct {
 	// User agent to use when fetching a new PDF. Will be loaded from https://github.com/jnrbsn/user-agents if empty.
 	UpdateUserAgent string `env:"UPDATE_USER_AGENT"`
 
-	// Update endpoint rate limit requests.
-	UpdateLimitRequests int `env:"UPDATE_LIMIT_REQUESTS,notEmpty" envDefault:"2"`
-	// Update endpoint rate limit window.
-	UpdateLimitWindow time.Duration `env:"UPDATE_LIMIT_WINDOW,notEmpty"   envDefault:"1m"`
-
-	// Asset rate limit requests.
-	GetLimitRequests int `env:"GET_LIMIT_REQUESTS,notEmpty" envDefault:"5"`
-	// Asset rate limit window.
-	GetLimitWindow time.Duration `env:"GET_LIMIT_WINDOW,notEmpty"   envDefault:"10s"`
+	// HTTP rate limit requests.
+	LimitRequests int `env:"LIMIT_REQUESTS,notEmpty" envDefault:"5"`
+	// HTTP rate limit window.
+	LimitWindow time.Duration `env:"LIMIT_WINDOW,notEmpty"   envDefault:"10s"`
 }
 
 func Load() (*Config, error) {
