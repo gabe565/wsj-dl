@@ -5,3 +5,11 @@ repos:
       - id: go-mod-tidy-repo
       - id: golangci-lint-mod
         args: [--fix]
+
+  - repo: local
+    hooks:
+      - id: go-generate
+        name: go-generate
+        entry: go generate -x ./...
+        language: system
+        pass_filenames: false
