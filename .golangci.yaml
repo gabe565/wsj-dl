@@ -40,7 +40,6 @@ linters:
     - gochecknoglobals
     - gochecknoinits
     - gochecksumtype
-    - gocognit
     - goconst
     - gocritic
     - gocyclo
@@ -146,7 +145,7 @@ linters:
     nestif:
       min-complexity: 15
     nolintlint:
-      allow-no-explanation: [funlen, gocognit, golines]
+      allow-no-explanation: [funlen, golines]
       require-specific: true
     perfsprint:
       strconcat: false

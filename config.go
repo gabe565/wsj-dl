@@ -21,6 +21,8 @@ type Config struct {
 	// S3 bucket name.
 	S3Bucket string `env:"S3_BUCKET,notEmpty"`
 
+	// Checks for an updated PDF on startup.
+	UpdateOnStartup bool `env:"UPDATE_ON_STARTUP"   envDefault:"true"`
 	// Configures the update cron interval. Leave blank to disable.
 	UpdateCron string `env:"UPDATE_CRON"         envDefault:"0 8 * * 1-6"`
 	// Authorization key for the `/api/update` endpoint. Leave blank to disable this endpoint.

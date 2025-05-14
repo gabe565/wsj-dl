@@ -63,17 +63,6 @@ func run() error {
 
 	group, ctx := errgroup.WithContext(ctx)
 
-	go func() {
-		v, err := findLatest(ctx, conf, s3)
-		if err != nil {
-			slog.Error("Failed to find latest file", "error", err)
-			return
-		}
-
-		slog.Info("Found latest file", "path", v)
-		latest.Store(&v)
-	}()
-
 	group.Go(func() error {
 		slog.Info("Starting server", "addr", server.Addr)
 		return server.ListenAndServe()
@@ -89,6 +78,19 @@ func run() error {
 
 	if conf.UpdateCron != "" {
 		group.Go(func() error {
+			if conf.UpdateOnStartup {
+				if _, err := update(ctx, conf, s3); err != nil {
+					slog.Error("Update failed", "error", err)
+				}
+			} else {
+				if v, err := findLatest(ctx, conf, s3); err == nil {
+					slog.Info("Found latest file", "path", v)
+					latest.Store(&v)
+				} else {
+					slog.Error("Failed to find latest file", "error", err)
+				}
+			}
+
 			schedule, err := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow).
 				Parse(conf.UpdateCron)
 			if err != nil {

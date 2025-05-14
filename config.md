@@ -7,6 +7,7 @@
  - `S3_ENDPOINT` (**required**, non-empty) - S3-compatible API endpoint.
  - `S3_REGION` - S3 region.
  - `S3_BUCKET` (**required**, non-empty) - S3 bucket name.
+ - `UPDATE_ON_STARTUP` (default: `true`) - Checks for an updated PDF on startup.
  - `UPDATE_CRON` (default: `0 8 * * 1-6`) - Configures the update cron interval. Leave blank to disable.
  - `UPDATE_AUTH_KEY` - Authorization key for the `/api/update` endpoint. Leave blank to disable this endpoint.
  - `UPDATE_URL` (**required**, non-empty) - URL to fetch PDFs from.
