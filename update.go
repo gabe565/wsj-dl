@@ -31,9 +31,27 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error)
 	}
 	req.Header.Set("User-Agent", conf.UpdateUserAgent)
 
+	filename := filepath.Base(u.String())
+	flatFilename := filename
+	var exists bool
+
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			u = req.URL
+			filename = filepath.Base(u.String())
+			flatFilename = filename
+
+			if d, err := getDate(filename); err == nil {
+				ext := filepath.Ext(filename)
+				filename = d.Format("2006/01/02") + ext
+				flatFilename = d.Format("2006-01-02") + ext
+			}
+
+			if _, err := s3.StatObject(ctx, conf.S3Bucket, filename, minio.StatObjectOptions{}); err == nil {
+				exists = true
+				return http.ErrUseLastResponse
+			}
+
 			return nil
 		},
 	}
@@ -48,15 +66,11 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error)
 	}()
 
 	if res.StatusCode != http.StatusOK {
+		if exists {
+			slog.Info("File already exists", "filename", flatFilename, "url", u.String())
+			return flatFilename, nil
+		}
 		return "", fmt.Errorf("%w: %s", ErrUpstream, res.Status)
-	}
-
-	filename := filepath.Base(u.String())
-	flatFilename := filename
-	if d, err := getDate(filename); err == nil {
-		ext := filepath.Ext(filename)
-		filename = d.Format("2006/01/02") + ext
-		flatFilename = d.Format("2006-01-02") + ext
 	}
 
 	_, err = s3.PutObject(ctx, conf.S3Bucket, filename, res.Body, res.ContentLength, minio.PutObjectOptions{
