@@ -68,6 +68,7 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error)
 	if res.StatusCode != http.StatusOK {
 		if exists {
 			slog.Info("File already exists", "filename", flatFilename, "url", u.String())
+			latest.Store(&flatFilename)
 			return flatFilename, nil
 		}
 		return "", fmt.Errorf("%w: %s", ErrUpstream, res.Status)
