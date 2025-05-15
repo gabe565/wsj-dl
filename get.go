@@ -18,6 +18,10 @@ func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 				return
 			}
 		}
+		if filename == "" {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
 		filename = strings.ReplaceAll(filename, "-", "/")
 
 		obj, err := s3.GetObject(r.Context(), conf.S3Bucket, filename, minio.GetObjectOptions{})
