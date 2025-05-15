@@ -24,7 +24,7 @@ type Config struct {
 	// Checks for an updated PDF on startup.
 	UpdateOnStartup bool `env:"UPDATE_ON_STARTUP"   envDefault:"true"`
 	// Configures the update cron interval. Leave blank to disable.
-	UpdateCron string `env:"UPDATE_CRON"         envDefault:"0 8 * * 1-6"`
+	UpdateCron string `env:"UPDATE_CRON"         envDefault:"0 9 * * 1-6"`
 	// Authorization key for the `/api/update` endpoint. Leave blank to disable this endpoint.
 	UpdateAuthKey string `env:"UPDATE_AUTH_KEY"`
 	// URL to fetch PDFs from.
