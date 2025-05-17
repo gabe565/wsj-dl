@@ -83,9 +83,9 @@ func run() error {
 					slog.Error("Update failed", "error", err)
 				}
 			} else {
-				if v, err := findLatest(ctx, conf, s3); err == nil {
-					slog.Info("Found latest file", "path", v)
-					latest.Store(&v)
+				if issue, err := findLatest(ctx, conf, s3); err == nil {
+					slog.Info("Found latest file", "issue", issue)
+					latest.Store(issue)
 				} else {
 					slog.Error("Failed to find latest file", "error", err)
 				}

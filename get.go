@@ -3,7 +3,6 @@ package main
 import (
 	"net/http"
 	"strconv"
-	"strings"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/minio/minio-go/v7"
@@ -13,8 +12,8 @@ func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filename := chi.URLParam(r, "*")
 		if conf.RedirectToLatest && filename == "" {
-			if v := latest.Load(); v != nil {
-				http.Redirect(w, r, "/"+(*v), http.StatusTemporaryRedirect)
+			if issue := latest.Load(); issue != nil {
+				http.Redirect(w, r, "/"+issue.ShortPath(), http.StatusTemporaryRedirect)
 				return
 			}
 		}
@@ -22,7 +21,10 @@ func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
 		}
-		filename = strings.ReplaceAll(filename, "-", "/")
+
+		if issue, err := NewIssueFromPath(filename); err == nil {
+			filename = issue.FullPath()
+		}
 
 		obj, err := s3.GetObject(r.Context(), conf.S3Bucket, filename, minio.GetObjectOptions{})
 		if err != nil {
