@@ -2,14 +2,11 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"io"
 	"log/slog"
 	"net/http"
 	"net/url"
-	"path/filepath"
-	"strings"
 	"sync/atomic"
 	"time"
 
@@ -17,37 +14,33 @@ import (
 )
 
 //nolint:gochecknoglobals
-var latest atomic.Pointer[string]
+var latest atomic.Pointer[Issue]
 
-func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error) {
+func update(ctx context.Context, conf *Config, s3 *minio.Client) (*Issue, error) {
 	u, err := url.Parse(conf.UpdateURL)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, u.String(), nil)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	req.Header.Set("User-Agent", conf.UpdateUserAgent)
 
-	filename := filepath.Base(u.String())
-	flatFilename := filename
+	var issue *Issue
 	var exists bool
 
 	client := &http.Client{
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			u = req.URL
-			filename = filepath.Base(u.String())
-			flatFilename = filename
 
-			if d, err := getDate(filename); err == nil {
-				ext := filepath.Ext(filename)
-				filename = d.Format("2006/01/02") + ext
-				flatFilename = d.Format("2006-01-02") + ext
+			issue, err = NewIssueFromPath(u.Path)
+			if err != nil {
+				return err
 			}
 
-			if _, err := s3.StatObject(ctx, conf.S3Bucket, filename, minio.StatObjectOptions{}); err == nil {
+			if _, err := s3.StatObject(ctx, conf.S3Bucket, issue.FullPath(), minio.StatObjectOptions{}); err == nil {
 				exists = true
 				return http.ErrUseLastResponse
 			}
@@ -58,7 +51,7 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error)
 
 	res, err := client.Do(req)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	defer func() {
 		_, _ = io.Copy(io.Discard, res.Body)
@@ -67,25 +60,25 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (string, error)
 
 	if res.StatusCode != http.StatusOK {
 		if exists {
-			slog.Info("File already exists", "filename", flatFilename, "url", u.String())
-			latest.Store(&flatFilename)
-			return flatFilename, nil
+			slog.Info("File already exists", "filename", issue, "url", u.String())
+			latest.Store(issue)
+			return issue, nil
 		}
-		return "", fmt.Errorf("%w: %s", ErrUpstream, res.Status)
+		return nil, fmt.Errorf("%w: %s", ErrUpstream, res.Status)
 	}
 
-	_, err = s3.PutObject(ctx, conf.S3Bucket, filename, res.Body, res.ContentLength, minio.PutObjectOptions{
+	_, err = s3.PutObject(ctx, conf.S3Bucket, issue.FullPath(), res.Body, res.ContentLength, minio.PutObjectOptions{
 		ContentType:        res.Header.Get("Content-Type"),
-		ContentDisposition: "attachment; filename=" + flatFilename,
+		ContentDisposition: "attachment; filename=" + issue.ShortPath(),
 	})
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	slog.Info("Loaded file", "filename", flatFilename, "url", u.String())
-	latest.Store(&flatFilename)
+	slog.Info("Loaded file", "filename", issue, "url", u.String())
+	latest.Store(issue)
 
-	return flatFilename, nil
+	return issue, nil
 }
 
 func updateHandler(conf *Config, s3 *minio.Client) http.HandlerFunc {
@@ -95,52 +88,23 @@ func updateHandler(conf *Config, s3 *minio.Client) http.HandlerFunc {
 			return
 		}
 
-		name, err := update(r.Context(), conf, s3)
+		issue, err := update(r.Context(), conf, s3)
 		if err != nil {
 			handleHTTPError(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 
-		http.Redirect(w, r, "../"+name, http.StatusTemporaryRedirect)
+		http.Redirect(w, r, "../"+issue.ShortPath(), http.StatusTemporaryRedirect)
 	}
 }
 
-var ErrInvalidFilename = errors.New("invalid filename")
-
-func getDate(filename string) (time.Time, error) {
-	log := slog.With("filename", filename)
-
-	_, filename, ok := strings.Cut(filename, "-")
-	if !ok {
-		log.Warn("Filename missing random prefix")
-		return time.Time{}, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing random prefix")
-	}
-
-	_, filename, ok = strings.Cut(filename, "-")
-	if !ok {
-		log.Warn("Filename missing non-random prefix")
-		return time.Time{}, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing non-random prefix")
-	}
-
-	ext := filepath.Ext(filename)
-	filename = strings.TrimSuffix(filename, ext)
-
-	d, err := time.Parse("1-2-2006", filename)
-	if err != nil {
-		log.Warn("Failed to parse filename date", "error", err)
-		return time.Time{}, fmt.Errorf("%w: %w", ErrInvalidFilename, err)
-	}
-
-	return d, nil
-}
-
-func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (string, error) {
+func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (*Issue, error) {
 	// Fast path for today
 	now := time.Now()
 	if _, err := s3.StatObject(ctx, conf.S3Bucket, now.Format("2006/01/02.pdf"),
 		minio.StatObjectOptions{},
 	); err == nil {
-		return now.Format("2006-01-02.pdf"), nil
+		return NewIssueFromDate(now, ".pdf"), nil
 	}
 
 	// Fast path for yesterday
@@ -148,21 +112,20 @@ func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (string, er
 	if _, err := s3.StatObject(ctx, conf.S3Bucket, now.Format("2006/01/02.pdf"),
 		minio.StatObjectOptions{},
 	); err == nil {
-		return now.Format("2006-01-02.pdf"), nil
+		return NewIssueFromDate(now, ".pdf"), nil
 	}
 
 	// Slow path
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	var latestName string
 	var latest time.Time
 	for item := range s3.ListObjectsIter(ctx, conf.S3Bucket, minio.ListObjectsOptions{
 		Prefix:    "20",
 		Recursive: true,
 	}) {
 		if item.Err != nil {
-			return "", item.Err
+			return nil, item.Err
 		}
 
 		d, err := time.Parse("2006/01/02.pdf", item.Key)
@@ -171,11 +134,9 @@ func findLatest(ctx context.Context, conf *Config, s3 *minio.Client) (string, er
 		}
 
 		if d.After(latest) {
-			latestName = item.Key
 			latest = d
 		}
 	}
 
-	latestName = strings.ReplaceAll(latestName, "/", "-")
-	return latestName, nil
+	return NewIssueFromDate(latest, ".pdf"), nil
 }
