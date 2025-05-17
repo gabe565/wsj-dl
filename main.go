@@ -87,7 +87,7 @@ func run() error {
 	if conf.UpdateCron != "" {
 		group.Go(func() error {
 			if conf.UpdateOnStartup {
-				if _, err := update(ctx, conf, s3); err != nil {
+				if _, err := update(ctx, conf, s3, false); err != nil {
 					slog.Error("Update failed", "error", err)
 				}
 			}
@@ -107,7 +107,7 @@ func run() error {
 				case <-ctx.Done():
 					return ctx.Err()
 				case <-time.After(until):
-					if _, err := update(ctx, conf, s3); err != nil {
+					if _, err := update(ctx, conf, s3, false); err != nil {
 						slog.Error("Update failed", "error", err)
 						continue
 					}

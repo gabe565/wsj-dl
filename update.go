@@ -16,13 +16,15 @@ import (
 //nolint:gochecknoglobals
 var latest atomic.Pointer[Issue]
 
-func update(ctx context.Context, conf *Config, s3 *minio.Client) (*Issue, error) {
-	if issue := latest.Load(); issue != nil {
-		y1, m1, d1 := issue.Date.Date()
-		y2, m2, d2 := time.Now().Date()
-		if y1 == y2 && m1 == m2 && d1 == d2 {
-			slog.Info("Latest issue is already downloaded", "filename", issue)
-			return issue, nil
+func update(ctx context.Context, conf *Config, s3 *minio.Client, force bool) (*Issue, error) {
+	if !force {
+		if issue := latest.Load(); issue != nil {
+			y1, m1, d1 := issue.Date.Date()
+			y2, m2, d2 := time.Now().Date()
+			if y1 == y2 && m1 == m2 && d1 == d2 {
+				slog.Info("Latest issue is already downloaded", "filename", issue)
+				return issue, nil
+			}
 		}
 	}
 
@@ -49,9 +51,11 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client) (*Issue, error)
 				return err
 			}
 
-			if _, err := s3.StatObject(ctx, conf.S3Bucket, issue.FullPath(), minio.StatObjectOptions{}); err == nil {
-				exists = true
-				return http.ErrUseLastResponse
+			if !force {
+				if _, err := s3.StatObject(ctx, conf.S3Bucket, issue.FullPath(), minio.StatObjectOptions{}); err == nil {
+					exists = true
+					return http.ErrUseLastResponse
+				}
 			}
 
 			return nil
@@ -97,7 +101,7 @@ func updateHandler(conf *Config, s3 *minio.Client) http.HandlerFunc {
 			return
 		}
 
-		issue, err := update(r.Context(), conf, s3)
+		issue, err := update(r.Context(), conf, s3, r.URL.Query().Has("force"))
 		if err != nil {
 			handleHTTPError(w, err.Error(), http.StatusInternalServerError)
 			return
