@@ -3,6 +3,7 @@ package main
 import (
 	"context"
 	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"os"
@@ -61,6 +62,13 @@ func run() error {
 	ctx, cancel := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
 	defer cancel()
 
+	if issue, err := findLatest(ctx, conf, s3); err == nil {
+		slog.Info("Found latest file", "issue", issue)
+		latest.Store(issue)
+	} else {
+		return fmt.Errorf("failed to find latest file: %w", err)
+	}
+
 	group, ctx := errgroup.WithContext(ctx)
 
 	group.Go(func() error {
@@ -81,13 +89,6 @@ func run() error {
 			if conf.UpdateOnStartup {
 				if _, err := update(ctx, conf, s3); err != nil {
 					slog.Error("Update failed", "error", err)
-				}
-			} else {
-				if issue, err := findLatest(ctx, conf, s3); err == nil {
-					slog.Info("Found latest file", "issue", issue)
-					latest.Store(issue)
-				} else {
-					slog.Error("Failed to find latest file", "error", err)
 				}
 			}
 

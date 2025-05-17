@@ -17,6 +17,15 @@ import (
 var latest atomic.Pointer[Issue]
 
 func update(ctx context.Context, conf *Config, s3 *minio.Client) (*Issue, error) {
+	if issue := latest.Load(); issue != nil {
+		y1, m1, d1 := issue.Date.Date()
+		y2, m2, d2 := time.Now().Date()
+		if y1 == y2 && m1 == m2 && d1 == d2 {
+			slog.Info("Latest issue is already downloaded", "filename", issue)
+			return issue, nil
+		}
+	}
+
 	u, err := url.Parse(conf.UpdateURL)
 	if err != nil {
 		return nil, err
