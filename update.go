@@ -46,7 +46,7 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client, force bool) (*I
 		CheckRedirect: func(req *http.Request, _ []*http.Request) error {
 			u = req.URL
 
-			issue, err = NewIssueFromPath(u.Path)
+			issue, err = NewIssueFromUpstream(u.Path)
 			if err != nil {
 				return err
 			}

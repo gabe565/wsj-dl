@@ -85,6 +85,30 @@ func TestNewIssueFromDate(t *testing.T) {
 	}
 }
 
+func TestNewIssueFromUpstream(t *testing.T) {
+	type args struct {
+		p string
+	}
+	tests := []struct {
+		name    string
+		args    args
+		want    *Issue
+		wantErr require.ErrorAssertionFunc
+	}{
+		{"long", args{"test-issue-1-2-2025.pdf"}, &Issue{Date: date, Ext: ".pdf"}, require.NoError},
+		{"long missing section", args{"test-1-2-2025.pdf"}, nil, require.Error},
+		{"long invalid date", args{"test-issue-1-2-2025abc.pdf"}, nil, require.Error},
+		{"empty", args{""}, nil, require.Error},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got, err := NewIssueFromUpstream(tt.args.p)
+			tt.wantErr(t, err)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestNewIssueFromPath(t *testing.T) {
 	type args struct {
 		p string
@@ -95,42 +119,13 @@ func TestNewIssueFromPath(t *testing.T) {
 		want    *Issue
 		wantErr require.ErrorAssertionFunc
 	}{
-		{"short", args{"2025-01-02.pdf"}, &Issue{Date: date, Ext: ".pdf"}, require.NoError},
-		{"short invalid date", args{"2025-01-02abc.pdf"}, nil, require.Error},
-		{"long", args{"test-issue-1-2-2025.pdf"}, &Issue{Date: date, Ext: ".pdf"}, require.NoError},
-		{"long missing section", args{"test-1-2-2025.pdf"}, nil, require.Error},
-		{"long invalid date", args{"test-issue-1-2-2025abc.pdf"}, nil, require.Error},
+		{"valid", args{"2025-01-02.pdf"}, &Issue{Date: date, Ext: ".pdf"}, require.NoError},
+		{"invalid", args{"2025-01-02abc.pdf"}, nil, require.Error},
 		{"empty", args{""}, nil, require.Error},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got, err := NewIssueFromPath(tt.args.p)
-			tt.wantErr(t, err)
-			assert.Equal(t, tt.want, got)
-		})
-	}
-}
-
-func Test_getDate(t *testing.T) {
-	type args struct {
-		filename string
-	}
-	tests := []struct {
-		name    string
-		args    args
-		want    time.Time
-		wantErr require.ErrorAssertionFunc
-	}{
-		{"short", args{"2025-01-02.pdf"}, date, require.NoError},
-		{"short invalid date", args{"2025-01-02abc.pdf"}, time.Time{}, require.Error},
-		{"long", args{"test-issue-1-2-2025.pdf"}, date, require.NoError},
-		{"long missing section", args{"test-1-2-2025.pdf"}, time.Time{}, require.Error},
-		{"long invalid date", args{"test-issue-1-2-2025abc.pdf"}, time.Time{}, require.Error},
-		{"empty", args{""}, time.Time{}, require.Error},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := getDate(tt.args.filename)
 			tt.wantErr(t, err)
 			assert.Equal(t, tt.want, got)
 		})

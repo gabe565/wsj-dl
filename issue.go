@@ -5,20 +5,48 @@ import (
 	"fmt"
 	"log/slog"
 	"path"
-	"path/filepath"
 	"strings"
 	"time"
 )
 
-func NewIssueFromPath(p string) (*Issue, error) {
-	p = path.Base(p)
+var ErrInvalidFilename = errors.New("invalid filename")
 
-	d, err := getDate(p)
+func NewIssueFromUpstream(p string) (*Issue, error) {
+	ext := path.Ext(p)
+	p = path.Base(strings.TrimSuffix(p, ext))
+	log := slog.With("filename", p)
+
+	_, p, ok := strings.Cut(p, "-")
+	if !ok {
+		log.Warn("Filename missing random prefix")
+		return nil, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing random prefix")
+	}
+
+	_, p, ok = strings.Cut(p, "-")
+	if !ok {
+		log.Warn("Filename missing non-random prefix")
+		return nil, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing non-random prefix")
+	}
+
+	d, err := time.Parse("1-2-2006", p)
+	if err != nil {
+		log.Warn("Failed to parse filename date", "error", err)
+		return nil, fmt.Errorf("%w: %w", ErrInvalidFilename, err)
+	}
+
+	return &Issue{Date: d, Ext: ext}, nil
+}
+
+func NewIssueFromPath(p string) (*Issue, error) {
+	ext := path.Ext(p)
+	p = path.Base(strings.TrimSuffix(p, ext))
+
+	d, err := time.Parse("2006-01-02", p)
 	if err != nil {
 		return nil, err
 	}
 
-	return &Issue{Date: d, Ext: filepath.Ext(p)}, nil
+	return &Issue{Date: d, Ext: ext}, nil
 }
 
 func NewIssueFromDate(date time.Time, ext string) *Issue {
@@ -40,37 +68,4 @@ func (i Issue) ShortPath() string {
 
 func (i Issue) String() string {
 	return i.ShortPath()
-}
-
-var ErrInvalidFilename = errors.New("invalid filename")
-
-func getDate(filename string) (time.Time, error) {
-	log := slog.With("filename", filename)
-
-	filename = path.Base(filename)
-	ext := filepath.Ext(filename)
-	filename = strings.TrimSuffix(filename, ext)
-
-	d, err := time.Parse("2006-01-02", filename)
-	if err != nil {
-		_, filename, ok := strings.Cut(filename, "-")
-		if !ok {
-			log.Warn("Filename missing random prefix")
-			return time.Time{}, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing random prefix")
-		}
-
-		_, filename, ok = strings.Cut(filename, "-")
-		if !ok {
-			log.Warn("Filename missing non-random prefix")
-			return time.Time{}, fmt.Errorf("%w: %s", ErrInvalidFilename, "missing non-random prefix")
-		}
-
-		d, err = time.Parse("1-2-2006", filename)
-		if err != nil {
-			log.Warn("Failed to parse filename date", "error", err)
-			return time.Time{}, fmt.Errorf("%w: %w", ErrInvalidFilename, err)
-		}
-	}
-
-	return d, nil
 }
