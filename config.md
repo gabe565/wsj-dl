@@ -12,6 +12,6 @@
  - `UPDATE_AUTH_KEY` - Authorization key for the `/api/update` endpoint. Leave blank to disable this endpoint.
  - `UPDATE_URL` (**required**, non-empty) - URL to fetch PDFs from.
  - `UPDATE_USER_AGENT` - User agent to use when fetching a new PDF. Will be loaded from https://github.com/jnrbsn/user-agents if empty.
- - `LIMIT_REQUESTS` (**required**, non-empty, default: `5`) - HTTP rate limit requests.
+ - `LIMIT_REQUESTS` (**required**, non-empty, default: `10`) - HTTP rate limit requests.
  - `LIMIT_WINDOW` (**required**, non-empty, default: `10s`) - HTTP rate limit window.
 
