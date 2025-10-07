@@ -32,6 +32,8 @@ type Config struct {
 	// User agent to use when fetching a new PDF. Will be loaded from https://github.com/jnrbsn/user-agents if empty.
 	UpdateUserAgent string `env:"UPDATE_USER_AGENT"`
 
+	// Get client IP address from the "Real-IP" header.
+	RealIPHeader bool `env:"REAL_IP_HEADER"          envDefault:"true"`
 	// HTTP rate limit requests.
 	LimitRequests int `env:"LIMIT_REQUESTS,notEmpty" envDefault:"30"`
 	// HTTP rate limit window.

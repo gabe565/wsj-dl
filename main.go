@@ -39,13 +39,14 @@ func run() error {
 	}
 
 	r := chi.NewRouter()
-	r.Use(
-		middleware.Heartbeat("/ping"),
-		middleware.RealIP,
-		middleware.Logger,
-		middleware.Recoverer,
-		httprate.Limit(conf.LimitRequests, conf.LimitWindow, httprate.WithKeyByIP()),
-	)
+
+	r.Use(middleware.Heartbeat("/ping"))
+	if conf.RealIPHeader {
+		r.Use(middleware.RealIP)
+	}
+	r.Use(middleware.Logger)
+	r.Use(middleware.Recoverer)
+	r.Use(httprate.Limit(conf.LimitRequests, conf.LimitWindow, httprate.WithKeyByIP()))
 
 	if conf.UpdateAuthKey != "" {
 		r.Get("/api/update", updateHandler(conf, s3))
