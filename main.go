@@ -52,6 +52,10 @@ func run() error {
 		r.Get("/api/update", updateHandler(conf, s3))
 	}
 
+	if conf.RedirectToLatest {
+		r.Get("/", redirectLatest())
+	}
+
 	r.Get("/*", get(conf, s3))
 
 	server := &http.Server{

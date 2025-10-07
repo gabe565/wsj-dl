@@ -11,12 +11,6 @@ import (
 func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		filename := chi.URLParam(r, "*")
-		if conf.RedirectToLatest && filename == "" {
-			if issue := latest.Load(); issue != nil {
-				http.Redirect(w, r, "/"+issue.ShortPath(), http.StatusTemporaryRedirect)
-				return
-			}
-		}
 		if filename == "" {
 			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
 			return
@@ -47,6 +41,18 @@ func get(conf *Config, s3 *minio.Client) http.HandlerFunc {
 
 		w.Header().Set("Cache-Control", "public, max-age=86400")
 		http.ServeContent(w, r, filename, stat.LastModified, obj)
+	}
+}
+
+func redirectLatest() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		issue := latest.Load()
+		if issue == nil {
+			http.Error(w, http.StatusText(http.StatusNotFound), http.StatusNotFound)
+			return
+		}
+
+		http.Redirect(w, r, "/"+issue.ShortPath(), http.StatusTemporaryRedirect)
 	}
 }
 
