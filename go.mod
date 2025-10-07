@@ -4,7 +4,7 @@ go 1.25.1
 
 require (
 	github.com/caarlos0/env/v11 v11.3.1
-	github.com/go-chi/chi/v5 v5.2.1
+	github.com/go-chi/chi/v5 v5.2.2
 	github.com/go-chi/httprate v0.15.0
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/robfig/cron/v3 v3.0.1
