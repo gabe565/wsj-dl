@@ -8,7 +8,7 @@ require (
 	github.com/go-chi/httprate v0.15.0
 	github.com/minio/minio-go/v7 v7.0.95
 	github.com/robfig/cron/v3 v3.0.1
-	github.com/stretchr/testify v1.10.0
+	github.com/stretchr/testify v1.11.1
 	golang.org/x/sync v0.15.0
 )
 
