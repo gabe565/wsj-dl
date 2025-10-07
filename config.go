@@ -33,9 +33,9 @@ type Config struct {
 	UpdateUserAgent string `env:"UPDATE_USER_AGENT"`
 
 	// HTTP rate limit requests.
-	LimitRequests int `env:"LIMIT_REQUESTS,notEmpty" envDefault:"10"`
+	LimitRequests int `env:"LIMIT_REQUESTS,notEmpty" envDefault:"30"`
 	// HTTP rate limit window.
-	LimitWindow time.Duration `env:"LIMIT_WINDOW,notEmpty"   envDefault:"10s"`
+	LimitWindow time.Duration `env:"LIMIT_WINDOW,notEmpty"   envDefault:"15s"`
 }
 
 func Load() (*Config, error) {
