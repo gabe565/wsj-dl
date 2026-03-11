@@ -129,6 +129,6 @@ func run() error {
 }
 
 func handleHTTPError(w http.ResponseWriter, msg string, status int) {
-	slog.Error("Download failed", "error", msg, "status", status)
+	slog.Error("Download failed", "error", msg, "status", status) //nolint:gosec
 	http.Error(w, msg, status)
 }

@@ -52,7 +52,9 @@ func update(ctx context.Context, conf *Config, s3 *minio.Client, force bool) (*I
 			}
 
 			if !force {
-				if _, err := s3.StatObject(ctx, conf.S3Bucket, issue.FullPath(), minio.StatObjectOptions{}); err == nil {
+				if _, err := s3.StatObject(
+					ctx, conf.S3Bucket, issue.FullPath(), minio.StatObjectOptions{},
+				); err == nil {
 					exists = true
 					return http.ErrUseLastResponse
 				}

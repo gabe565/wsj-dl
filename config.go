@@ -12,7 +12,7 @@ type Config struct {
 	// The address to listen for HTTP requests on.
 	ListenAddress string `env:"LISTEN_ADDRESS,notEmpty" envDefault:":8080"`
 	// Redirect requests to `/` to the latest PDF.
-	RedirectToLatest bool `env:"REDIRECT_TO_LATEST"      envDefault:"true"`
+	RedirectToLatest bool `env:"REDIRECT_TO_LATEST" envDefault:"true"`
 
 	// S3-compatible API endpoint.
 	S3Endpoint string `env:"S3_ENDPOINT,notEmpty"`
@@ -22,9 +22,9 @@ type Config struct {
 	S3Bucket string `env:"S3_BUCKET,notEmpty"`
 
 	// Checks for an updated PDF on startup.
-	UpdateOnStartup bool `env:"UPDATE_ON_STARTUP"   envDefault:"true"`
+	UpdateOnStartup bool `env:"UPDATE_ON_STARTUP" envDefault:"true"`
 	// Configures the update cron interval. Leave blank to disable.
-	UpdateCron string `env:"UPDATE_CRON"         envDefault:"30 10 * * 1-6"`
+	UpdateCron string `env:"UPDATE_CRON" envDefault:"30 10 * * 1-6"`
 	// Authorization key for the `/api/update` endpoint. Leave blank to disable this endpoint.
 	UpdateAuthKey string `env:"UPDATE_AUTH_KEY"`
 	// URL to fetch PDFs from.
@@ -33,11 +33,11 @@ type Config struct {
 	UpdateUserAgent string `env:"UPDATE_USER_AGENT"`
 
 	// Get client IP address from the "Real-IP" header.
-	RealIPHeader bool `env:"REAL_IP_HEADER"          envDefault:"true"`
+	RealIPHeader bool `env:"REAL_IP_HEADER" envDefault:"true"`
 	// HTTP rate limit requests.
 	LimitRequests int `env:"LIMIT_REQUESTS,notEmpty" envDefault:"30"`
 	// HTTP rate limit window.
-	LimitWindow time.Duration `env:"LIMIT_WINDOW,notEmpty"   envDefault:"15s"`
+	LimitWindow time.Duration `env:"LIMIT_WINDOW,notEmpty" envDefault:"15s"`
 }
 
 func Load() (*Config, error) {
