@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
-	"github.com/robfig/cron/v3"
 	"golang.org/x/sync/errgroup"
 )
 
@@ -48,9 +47,9 @@ func run() error {
 	r.Use(middleware.Recoverer)
 	r.Use(httprate.Limit(conf.LimitRequests, conf.LimitWindow, httprate.WithKeyByIP()))
 
-	if conf.UpdateAuthKey != "" {
-		r.Get("/api/update", updateHandler(conf, s3))
-	}
+	upload := uploadHandler(conf, s3)
+	r.Get("/api/upload", upload)
+	r.Post("/api/upload", upload)
 
 	if conf.RedirectToLatest {
 		r.Get("/", redirectLatest())
@@ -89,38 +88,6 @@ func run() error {
 		return server.Shutdown(ctx)
 	})
 
-	if conf.UpdateCron != "" {
-		group.Go(func() error {
-			if conf.UpdateOnStartup {
-				if _, err := update(ctx, conf, s3, false); err != nil {
-					slog.Error("Update failed", "error", err)
-				}
-			}
-
-			schedule, err := cron.NewParser(cron.Minute | cron.Hour | cron.Dom | cron.Month | cron.Dow).
-				Parse(conf.UpdateCron)
-			if err != nil {
-				return err
-			}
-
-			for {
-				next := schedule.Next(time.Now())
-				until := time.Until(next)
-				slog.Info("Waiting for next update", "timestamp", &next, "in", until.Round(time.Second))
-
-				select {
-				case <-ctx.Done():
-					return ctx.Err()
-				case <-time.After(until):
-					if _, err := update(ctx, conf, s3, false); err != nil {
-						slog.Error("Update failed", "error", err)
-						continue
-					}
-				}
-			}
-		})
-	}
-
 	err = group.Wait()
 	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) {
 		return nil
@@ -129,6 +96,6 @@ func run() error {
 }
 
 func handleHTTPError(w http.ResponseWriter, msg string, status int) {
-	slog.Error("Download failed", "error", msg, "status", status) //nolint:gosec
+	slog.Error("Download failed", "error", msg, "status", status)
 	http.Error(w, msg, status)
 }
