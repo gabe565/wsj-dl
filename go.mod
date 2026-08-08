@@ -3,7 +3,7 @@ module gabe565.com/wsj-dl
 go 1.26.5
 
 require (
-	github.com/caarlos0/env/v11 v11.4.0
+	github.com/caarlos0/env/v11 v11.4.1
 	github.com/go-chi/chi/v5 v5.3.1
 	github.com/go-chi/httprate v0.15.0
 	github.com/minio/minio-go/v7 v7.2.1
