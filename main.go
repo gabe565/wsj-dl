@@ -14,7 +14,6 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-chi/httprate"
-	"golang.org/x/sync/errgroup"
 )
 
 func main() {
@@ -75,26 +74,33 @@ func run() error {
 		return fmt.Errorf("failed to find latest file: %w", err)
 	}
 
-	group, ctx := errgroup.WithContext(ctx)
+	errCh := make(chan error, 1)
 
-	group.Go(func() error {
+	go func() {
 		slog.Info("Starting server", "addr", server.Addr)
-		return server.ListenAndServe()
-	})
+		if err := server.ListenAndServe(); err != nil {
+			errCh <- err
+		}
+	}()
 
-	group.Go(func() error {
-		<-ctx.Done()
-		slog.Info("Shutting down")
-		ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
-		defer cancel()
-		return server.Shutdown(ctx)
-	})
+	select {
+	case <-ctx.Done():
+		const timeout = 30 * time.Second
 
-	err = group.Wait()
-	if errors.Is(err, http.ErrServerClosed) || errors.Is(err, context.Canceled) {
+		ctx, cancelTimeout := context.WithTimeout(context.Background(), timeout)
+		defer cancelTimeout()
+
+		ctx, cancelSignal := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM, syscall.SIGQUIT)
+		defer cancelSignal()
+
+		slog.Info("Shutting down", "timeout", timeout)
+		if err := server.Shutdown(ctx); err != nil && !errors.Is(err, context.DeadlineExceeded) {
+			return err
+		}
 		return nil
+	case err := <-errCh:
+		return err
 	}
-	return err
 }
 
 func handleHTTPError(w http.ResponseWriter, msg string, status int) {

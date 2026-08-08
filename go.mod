@@ -8,7 +8,6 @@ require (
 	github.com/go-chi/httprate v0.16.0
 	github.com/minio/minio-go/v7 v7.2.1
 	github.com/stretchr/testify v1.11.1
-	golang.org/x/sync v0.22.0
 )
 
 require (
