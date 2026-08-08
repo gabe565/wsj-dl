@@ -40,12 +40,14 @@ func run() error {
 	r := chi.NewRouter()
 
 	r.Use(middleware.Heartbeat("/ping"))
-	if conf.RealIPHeader {
-		r.Use(middleware.RealIP)
+	if conf.TrustedProxies != nil {
+		r.Use(middleware.ClientIPFromXFF(conf.TrustedProxies...))
 	}
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
-	r.Use(httprate.Limit(conf.LimitRequests, conf.LimitWindow, httprate.WithKeyByIP()))
+	r.Use(httprate.LimitBy(conf.LimitRequests, conf.LimitWindow, func(r *http.Request) (string, error) {
+		return middleware.GetClientIP(r.Context()), nil
+	}))
 
 	upload := uploadHandler(conf, s3)
 	r.Get("/api/upload", upload)
